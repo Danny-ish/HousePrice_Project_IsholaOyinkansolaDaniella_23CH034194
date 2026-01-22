@@ -1,11 +1,18 @@
 from flask import Flask, render_template, request
 import numpy as np
 import joblib
+import os  # needed for deployment environment
 
 app = Flask(__name__)
 
+# -------------------------------
+# Load the trained model
+# -------------------------------
 model = joblib.load("model/house_price_model.pkl")
 
+# -------------------------------
+# Home route
+# -------------------------------
 @app.route("/", methods=["GET", "POST"])
 def index():
     prediction = None
@@ -22,14 +29,20 @@ def index():
             features = np.array([[overallqual, grlivarea, totalbsmtsf,
                                   garagecars, fullbath, yearbuilt]])
 
-            prediction = model.predict(features)[0]
+            # Make prediction
+            pred_value = model.predict(features)[0]
 
-            prediction = f"{prediction:,.2f}"
+            # Format nicely with commas and 2 decimals
+            prediction = f"${pred_value:,.2f}"
 
         except Exception as e:
             prediction = f"Error: {e}"
 
     return render_template("index.html", prediction=prediction)
 
+# -------------------------------
+# Deployment-ready settings
+# -------------------------------
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))  # Use Render-assigned port or default 5000
+    app.run(host="0.0.0.0", port=port, debug=True)
